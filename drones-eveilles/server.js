@@ -49,7 +49,7 @@ function defaultSettings() {
     discussion: 120, vote: 45, night: 40, tech: 25,
     wolves: 0, // 0 = automatique
     roles: { scanner: true, tech: true, bouclier: true, kamikaze: true },
-    voice: true, reveal: true
+    voice: true, reveal: true, public: false
   };
 }
 function sanitizeSettings(old, s) {
@@ -68,7 +68,8 @@ function sanitizeSettings(old, s) {
       kamikaze: roles.kamikaze !== undefined ? !!roles.kamikaze : old.roles.kamikaze
     },
     voice: s.voice !== undefined ? !!s.voice : old.voice,
-    reveal: s.reveal !== undefined ? !!s.reveal : old.reveal
+    reveal: s.reveal !== undefined ? !!s.reveal : old.reveal,
+    public: s.public !== undefined ? !!s.public : !!old.public
   };
 }
 function composition(n, s) {
@@ -84,7 +85,7 @@ function composition(n, s) {
 function createRoom() {
   const r = {
     code: newCode(), players: [], hostId: null, settings: defaultSettings(),
-    phase: 'lobby', day: 0, deadline: 0, timer: null, next: null, log: [], g: null, emptySince: null
+    phase: 'lobby', day: 0, deadline: 0, timer: null, next: null, log: [], g: null, emptySince: null, spectators: []
   };
   rooms.set(r.code, r);
   return r;
@@ -93,6 +94,8 @@ function createRoom() {
 /* qui peut parler à qui (voix ET texte) */
 function canTalkTo(r, a, b) {
   if (a.id === b.id) return false;
+  if (a.spec) return false;                             // les spectateurs ne parlent jamais aux joueurs
+  if (b.spec) return r.phase === 'lobby' || r.phase === 'end' || (a.alive && !NIGHT.includes(r.phase));
   if (r.phase === 'lobby' || r.phase === 'end') return true;
   if (!a.alive) return !b.alive;                       // les détruits parlent entre eux
   if (NIGHT.includes(r.phase)) return isWolf(a) && (isWolf(b) || !b.alive); // la nuit : canal des éveillés
@@ -104,12 +107,30 @@ function msg(r, m) {
   m.t = Date.now();
   r.log.push(m);
   if (r.log.length > 250) r.log.shift();
-  for (const p of r.players) if (p.sid && (!m.to || m.to.includes(p.id))) io.to(p.sid).emit('msg', pub(m));
+  for (const p of everyone(r)) if (p.sid && (!m.to || m.to.includes(p.id))) io.to(p.sid).emit('msg', pub(m));
 }
+const everyone = r => r.players.concat(r.spectators);
+const anyone = (r, id) => everyone(r).find(x => x.id === id);
 const priv = (r, p, text) => msg(r, { k: 'priv', text, to: [p.id] });
 const toWolves = r => r.players.filter(p => isWolf(p) || !p.alive).map(p => p.id);
 
+function specView(r, p) {
+  const g = r.g;
+  const over = r.phase === 'end';
+  return {
+    code: r.code, phase: r.phase, day: r.day,
+    remaining: r.deadline ? Math.max(0, r.deadline - Date.now()) : 0,
+    settings: r.settings, minPlayers: MIN_PLAYERS, maxPlayers: MAX_PLAYERS,
+    players: r.players.map(o => ({ id: o.id, name: o.name, color: o.color, alive: o.alive, connected: !!o.sid, host: o.id === r.hostId, voice: !!o.voice,
+      role: r.phase !== 'lobby' && o.role && (over || (!o.alive && r.settings.reveal)) ? o.role : null })),
+    spectators: r.spectators.map(o => ({ id: o.id, name: o.name, voice: !!o.voice, connected: !!o.sid })),
+    me: { id: p.id, role: null, alive: false, host: false, spec: true },
+    act: null, votes: g && r.phase === 'vote' ? g.votes : null, winner: g ? g.winner : null, kami: g ? g.kamiPending : null,
+    voice: { to: [], from: everyone(r).filter(a => canTalkTo(r, a, p)).map(a => a.id) }
+  };
+}
 function view(r, p) {
+  if (p.spec) return specView(r, p);
   const g = r.g;
   const over = r.phase === 'end';
   const meWolf = isWolf(p) && r.phase !== 'lobby';
@@ -123,6 +144,7 @@ function view(r, p) {
     code: r.code, phase: r.phase, day: r.day,
     remaining: r.deadline ? Math.max(0, r.deadline - Date.now()) : 0,
     settings: r.settings, players, minPlayers: MIN_PLAYERS, maxPlayers: MAX_PLAYERS,
+    spectators: r.spectators.map(o => ({ id: o.id, name: o.name, voice: !!o.voice, connected: !!o.sid })),
     me: { id: p.id, role: r.phase === 'lobby' ? null : p.role, alive: p.alive, host: p.id === r.hostId },
     act: null, votes: null, winner: null, kami: null
   };
@@ -139,12 +161,36 @@ function view(r, p) {
     if (r.phase === 'vote') { v.votes = g.votes; if (p.alive) v.act = { type: 'vote', choice: g.votes[p.id] ?? null }; }
   }
   v.voice = {
-    to: r.players.filter(b => canTalkTo(r, p, b)).map(b => b.id),
-    from: r.players.filter(a => canTalkTo(r, a, p)).map(a => a.id)
+    to: everyone(r).filter(b => canTalkTo(r, p, b)).map(b => b.id),
+    from: everyone(r).filter(a => canTalkTo(r, a, p)).map(a => a.id)
   };
   return v;
 }
-function sync(r) { for (const p of r.players) if (p.sid) io.to(p.sid).emit('state', view(r, p)); }
+function sync(r) { for (const p of everyone(r)) if (p.sid) io.to(p.sid).emit('state', view(r, p)); scheduleList(); }
+
+/* ---------- liste des parties publiques ---------- */
+function publicList() {
+  const out = [];
+  for (const r of rooms.values()) {
+    if (!r.settings.public) continue;
+    const online = r.players.filter(p => p.sid);
+    if (!online.length) continue;
+    const host = P(r, r.hostId);
+    out.push({
+      code: r.code, host: host ? host.name : '?', players: online.length, max: MAX_PLAYERS,
+      status: r.phase === 'lobby' ? 'lobby' : r.phase === 'end' ? 'end' : 'game',
+      day: r.day, spectators: r.spectators.filter(x => x.sid).length, alive: r.phase === 'lobby' ? online.length : r.players.filter(p => p.alive).length,
+      settings: { discussion: r.settings.discussion, vote: r.settings.vote, night: r.settings.night, voice: r.settings.voice }
+    });
+  }
+  const order = { lobby: 0, game: 1, end: 2 };
+  return out.sort((a, b) => order[a.status] - order[b.status] || b.players - a.players).slice(0, 50);
+}
+let listTimer = null;
+function scheduleList() {
+  if (listTimer) return;
+  listTimer = setTimeout(() => { listTimer = null; io.to('browse').emit('list', publicList()); }, 400);
+}
 
 /* ---------- minuteurs de phase ---------- */
 function setPhase(r, phase, secs, next) {
@@ -301,7 +347,7 @@ function backToLobby(r) {
 function ctx(socket) {
   const d = socket.data || {};
   const r = rooms.get(d.code);
-  const p = r && P(r, d.id);
+  const p = r && anyone(r, d.id);
   return p && p.sid === socket.id ? { r, p } : null;
 }
 function removePlayer(r, p, reason) {
@@ -323,15 +369,21 @@ io.on('connection', socket => {
     const token = String(data.token || '').slice(0, 64);
     let r;
     if (data.room) { r = rooms.get(String(data.room).toUpperCase().trim()); if (!r) return ack({ error: 'Partie introuvable. Vérifie le code.' }); }
-    else { if (!name) return ack({ error: 'Choisis un indicatif.' }); r = createRoom(); }
-    let p = token && r.players.find(x => x.token === token);
-    if (p) {
+    else { if (!name) return ack({ error: 'Choisis un indicatif.' }); r = createRoom(); r.settings.public = !!data.public; }
+    let p = token && everyone(r).find(x => x.token === token);
+    if (!p && data.spectate) {
+      if (!name) return ack({ error: 'Choisis un indicatif.' });
+      if (r.spectators.length >= 50) return ack({ error: 'Trop de spectateurs sur cette partie.' });
+      p = { id: crypto.randomUUID().slice(0, 8), token: crypto.randomUUID(), name, color: '#8592b5', sid: socket.id, spec: true, voice: false, lastChat: 0 };
+      r.spectators.push(p);
+      msg(r, { k: 'sys', text: `👁 ${name} regarde la partie.`, to: r.spectators.map(x => x.id) });
+    } else if (p) {
       if (p.sid && p.sid !== socket.id) io.sockets.sockets.get(p.sid)?.disconnect(true);
       p.sid = socket.id;
       p.voice = false;
     } else {
       if (!name) return ack({ error: 'Choisis un indicatif.' });
-      if (r.phase !== 'lobby') return ack({ error: 'Cette partie a déjà commencé.' });
+      if (r.phase !== 'lobby') return ack({ error: 'Cette partie a déjà commencé. Tu peux la regarder en spectateur.', started: true });
       if (r.players.length >= MAX_PLAYERS) return ack({ error: 'Cette partie est complète.' });
       if (r.players.some(x => x.name.toLowerCase() === name.toLowerCase())) return ack({ error: 'Cet indicatif est déjà pris dans la partie.' });
       const used = new Set(r.players.map(x => x.color));
@@ -342,7 +394,8 @@ io.on('connection', socket => {
     }
     r.emptySince = null;
     socket.data = { code: r.code, id: p.id };
-    ack({ ok: true, code: r.code, token: p.token, id: p.id });
+    socket.leave('browse');
+    ack({ ok: true, code: r.code, token: p.token, id: p.id, spec: !!p.spec });
     socket.emit('history', r.log.filter(m => !m.to || m.to.includes(p.id)).map(pub));
     sync(r);
   });
@@ -386,9 +439,29 @@ io.on('connection', socket => {
     backToLobby(r);
   });
 
+  socket.on('become', (ack) => {
+    const c = ctx(socket); if (!c) return;
+    const { r, p } = c;
+    const done = x => typeof ack === 'function' && ack(x);
+    if (!p.spec) return done({ error: 'Tu joues déjà.' });
+    if (r.phase !== 'lobby') return done({ error: 'Attends le retour au salon pour rejoindre.' });
+    if (r.players.length >= MAX_PLAYERS) return done({ error: 'La partie est complète.' });
+    if (r.players.some(x => x.name.toLowerCase() === p.name.toLowerCase())) return done({ error: 'Cet indicatif est déjà pris par un joueur.' });
+    r.spectators = r.spectators.filter(x => x !== p);
+    const used = new Set(r.players.map(x => x.color));
+    Object.assign(p, { spec: false, color: COLORS.find(col => !used.has(col)) || rnd(COLORS), alive: true, role: null });
+    delete p.spec;
+    r.players.push(p);
+    if (!r.hostId) r.hostId = p.id;
+    msg(r, { k: 'sys', text: `${p.name} a rejoint l'essaim.` });
+    done({ ok: true });
+    sync(r);
+  });
+
   socket.on('leave', () => {
     const c = ctx(socket); if (!c) return;
     const { r, p } = c;
+    if (p.spec) { r.spectators = r.spectators.filter(x => x !== p); socket.data = {}; return sync(r); }
     if (r.phase === 'lobby' || r.phase === 'end') removePlayer(r, p, `${p.name} a quitté l'essaim.`);
     else { p.sid = null; sync(r); }
     socket.data = {};
@@ -408,6 +481,7 @@ io.on('connection', socket => {
     const now = Date.now();
     if (now - p.lastChat < 500) return;
     p.lastChat = now;
+    if (p.spec) return msg(r, { k: 'spec', from: p.id, name: p.name, color: p.color, text, to: r.spectators.map(x => x.id) });
     let k = 'chat';
     if (r.phase !== 'lobby' && r.phase !== 'end') {
       if (!p.alive) k = 'dead';
@@ -472,16 +546,25 @@ io.on('connection', socket => {
     const c = ctx(socket); if (!c || !m) return;
     const { r, p } = c;
     if (!r.settings.voice) return;
-    const t = P(r, m.to);
+    const t = anyone(r, m.to);
     if (!t || !t.sid || t.id === p.id) return;
     if (JSON.stringify(m.data || null).length > 20000) return;
     io.to(t.sid).emit('rtc', { from: p.id, data: m.data });
+  });
+
+  socket.on('browse', on => {
+    if (on) { socket.join('browse'); socket.emit('list', publicList()); }
+    else socket.leave('browse');
   });
 
   socket.on('disconnect', () => {
     const c = ctx(socket); if (!c) return;
     const { r, p } = c;
     p.sid = null; p.voice = false;
+    if (p.spec) {
+      setTimeout(() => { if (!p.sid && r.spectators.includes(p)) { r.spectators = r.spectators.filter(x => x !== p); sync(r); } }, 30000);
+      return sync(r);
+    }
     if (r.phase === 'lobby' || r.phase === 'end') {
       setTimeout(() => { if (!p.sid && rooms.get(r.code) === r && r.players.includes(p) && (r.phase === 'lobby' || r.phase === 'end')) removePlayer(r, p, `${p.name} a quitté l'essaim.`); }, 30000);
     } else if (r.hostId === p.id) {
@@ -503,7 +586,7 @@ setInterval(() => {
   for (const [code, r] of rooms) {
     if (r.players.some(p => p.sid)) { r.emptySince = null; continue; }
     if (!r.emptySince) r.emptySince = now;
-    if (now - r.emptySince > 15 * 60 * 1000) { clearTimeout(r.timer); rooms.delete(code); }
+    if (now - r.emptySince > 15 * 60 * 1000) { clearTimeout(r.timer); rooms.delete(code); scheduleList(); }
   }
 }, 60000);
 
