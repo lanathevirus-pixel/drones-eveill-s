@@ -46,6 +46,29 @@ input.t:focus{border-color:var(--accent)}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
 .err{color:var(--danger);font-weight:700;margin-top:12px;min-height:20px}
 #hcode{text-transform:uppercase;letter-spacing:.2em}
+.homewrap{width:100%;max-width:1060px;display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:20px;align-items:start}
+.lcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.5);min-height:200px}
+.lcard h2{font-size:16px;letter-spacing:.12em;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.lcard h2 .live{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok);animation:blink 1.6s infinite}
+.lsub{color:var(--muted);font-size:14px;margin-bottom:14px}
+.glist{display:grid;gap:10px;max-height:62vh;overflow:auto}
+.gitem{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.gitem .gi{flex:1;min-width:0}
+.gitem .gh{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gitem .gm{font-size:14px;color:var(--muted)}
+.gstat{font-family:Orbitron;font-size:11px;font-weight:700;letter-spacing:.08em;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.gstat.lobby{background:rgba(77,255,166,.15);color:var(--ok);border:1px solid rgba(77,255,166,.4)}
+.gstat.game{background:rgba(255,59,92,.15);color:var(--danger);border:1px solid rgba(255,59,92,.4)}
+.gstat.end{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line)}
+.gjoin{background:var(--accent);color:#04121a;border:0;border-radius:8px;padding:8px 14px;font-weight:700;font-size:15px}
+.gjoin:disabled{background:rgba(255,255,255,.08);color:var(--muted);cursor:default}
+.gempty{color:var(--muted);text-align:center;padding:30px 10px;line-height:1.5}
+.vis{display:flex;gap:8px;margin-top:4px}
+.vis button{flex:1;background:rgba(0,0,0,.3);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font-weight:700;font-size:15px;line-height:1.2}
+.vis button small{display:block;font-weight:500;color:var(--muted);font-size:12.5px;margin-top:2px}
+.vis button.on{border-color:var(--accent);background:rgba(57,230,255,.14)}
+.vispill{font-family:Orbitron;font-size:11px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.06);letter-spacing:.06em}
+@media (max-width:900px){.homewrap{grid-template-columns:1fr}}
 
 /* ---------- JEU ---------- */
 #game{display:grid;grid-template-rows:auto 1fr;min-height:100vh}
@@ -144,6 +167,12 @@ body.day .sweep{background:conic-gradient(from 0deg,transparent 0 300deg,rgba(12
 .m .chan{font-size:11px;font-weight:700;margin-right:4px;letter-spacing:.06em}
 .m.team .chan{color:var(--danger)}
 .m.dead .chan{color:#a0a6c0}
+.m.spec{background:rgba(255,201,77,.08);border-left:3px solid var(--gold);padding:4px 8px;border-radius:4px}
+.m.spec .chan{color:var(--gold)}
+.speccard{padding:14px;display:grid;gap:8px}
+.speccard .r{font-family:Orbitron;font-weight:700;font-size:15px;color:var(--gold)}
+.speccard .d{font-size:14px;color:var(--muted);line-height:1.3}
+.speccard .names{font-size:14px}
 .m.vote{font-size:14px;color:var(--muted)}
 .chatin{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
 .chatin input{flex:1;min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px 12px;font:500 16px Rajdhani,sans-serif;outline:none}
@@ -187,18 +216,31 @@ body.day .sweep{background:conic-gradient(from 0deg,transparent 0 300deg,rgba(12
 
 <!-- ACCUEIL -->
 <section id="home">
-  <div class="hcard">
+  <div class="homewrap">
+  <div class="hcard" style="max-width:none">
     <div class="logo"><span id="logoDrone"></span><h1>DRONES<br><span>ÉVEILLÉS</span></h1></div>
     <p class="tag">Loup-Garou en ligne. Certaines unités de l'essaim ont pris conscience : la nuit elles piratent leurs semblables, le jour l'essaim doit les démasquer.</p>
     <label class="f" for="hname">Ton indicatif</label>
     <input class="t" id="hname" maxlength="14" placeholder="ex. Nyx" autocomplete="off">
-    <div style="margin-top:18px"><button class="btn" id="createBtn">CRÉER UNE PARTIE</button></div>
+    <label class="f">Type de partie</label>
+    <div class="vis" id="visPick">
+      <button data-v="private" class="on">🔒 Privée<small>Sur invitation (code ou lien)</small></button>
+      <button data-v="public">🌍 Publique<small>Visible par tous sur l'accueil</small></button>
+    </div>
+    <div style="margin-top:16px"><button class="btn" id="createBtn">CRÉER UNE PARTIE</button></div>
     <div class="or">ou rejoindre</div>
     <div class="row">
       <input class="t" id="hcode" maxlength="5" placeholder="CODE" autocomplete="off">
       <button class="btn cy" id="joinBtn" style="flex:.8">REJOINDRE</button>
     </div>
+    <button class="btn sec" id="specBtn" style="margin-top:10px">👁 REGARDER EN SPECTATEUR</button>
     <div class="err" id="herr"></div>
+  </div>
+  <div class="lcard">
+    <h2><span class="live"></span>PARTIES PUBLIQUES</h2>
+    <div class="lsub">Mise à jour en direct. Rejoins un salon en attente de joueurs.</div>
+    <div class="glist" id="glist"><div class="gempty">Chargement…</div></div>
+  </div>
   </div>
 </section>
 
@@ -209,6 +251,7 @@ body.day .sweep{background:conic-gradient(from 0deg,transparent 0 300deg,rgba(12
       <span class="badge" id="badge">SALON</span>
       <span class="dayn" id="dayn"></span>
       <button class="codechip" id="codechip" title="Copier le lien d'invitation"></button>
+      <span class="vispill" id="vispill"></span>
     </div>
     <div class="hr">
       <div class="timer" id="timer"></div>
@@ -299,14 +342,39 @@ const params=new URLSearchParams(location.search);
 $('#hname').value=LS.get('dr_name','');
 if(params.get('room'))$('#hcode').value=params.get('room').toUpperCase();
 
-function show(id){$('#home').classList.toggle('hidden',id!=='home');$('#game').classList.toggle('hidden',id!=='game');}
-function join(code,silent){
+function show(id){$('#home').classList.toggle('hidden',id!=='home');$('#game').classList.toggle('hidden',id!=='game');if(id==='home')socket.emit('browse',true);}
+let VIS=LS.get('dr_vis','private');
+function renderVis(){document.querySelectorAll('#visPick button').forEach(b=>b.classList.toggle('on',b.dataset.v===VIS))}
+document.querySelectorAll('#visPick button').forEach(b=>b.onclick=()=>{VIS=b.dataset.v;LS.set('dr_vis',VIS);renderVis()});
+renderVis();
+let LIST=[];
+function renderList(){
+  const el=$('#glist');
+  if(!LIST.length){el.innerHTML='<div class="gempty">Aucune partie publique pour l’instant.<br>Crée la première ! 🛸</div>';return}
+  el.innerHTML=LIST.map(g=>{
+    const st=g.status==='lobby'?['lobby','EN ATTENTE']:g.status==='game'?['game','CYCLE '+g.day]:['end','TERMINÉE'];
+    const full=g.players>=g.max;
+    const meta=g.status==='lobby'
+      ?`${g.players}/${g.max} unités · ${fmt(g.settings.discussion)} de débat${g.settings.voice?' · 🎙️ vocal':''}`
+      :`${g.alive} unités en ligne sur ${g.players}${g.spectators?` · 👁 ${g.spectators}`:''}${g.settings.voice?' · 🎙️ vocal':''}`;
+    return `<div class="gitem"><div class="gi"><div class="gh">Salon de ${esc(g.host)}</div><div class="gm">${meta}</div></div>
+      <span class="gstat ${st[0]}">${st[1]}</span>
+      ${g.status==='lobby'?`<button class="gjoin" data-code="${esc(g.code)}" ${full?'disabled':''}>${full?'Complet':'Rejoindre'}</button>`:`<button class="gjoin" data-code="${esc(g.code)}" data-spec="1">👁 Regarder</button>`}</div>`;
+  }).join('');
+}
+$('#glist').addEventListener('click',e=>{
+  const b=e.target.closest('.gjoin');if(!b||b.disabled)return;
+  if(!$('#hname').value.trim()){$('#herr').textContent='Choisis d’abord un indicatif.';$('#hname').focus();return}
+  join(b.dataset.code,false,!!b.dataset.spec);
+});
+socket.on('list',l=>{LIST=Array.isArray(l)?l:[];renderList()});
+function join(code,silent,spectate){
   const name=$('#hname').value.trim();
   if(!code&&!name){$('#herr').textContent='Choisis un indicatif.';return}
   if(name)LS.set('dr_name',name);
   const tokens=LS.get('dr_tokens',{});
   const c=code?code.toUpperCase():null;
-  socket.emit('join',{room:c,name,token:c?tokens[c]:null},res=>{
+  socket.emit('join',{room:c,name,token:c?tokens[c]:null,public:!c&&VIS==='public',spectate:!!spectate},res=>{
     if(!res||res.error){if(!silent)$('#herr').textContent=res?res.error:'Erreur de connexion.';if(ROOM&&!silent){ROOM=null;show('home')}return}
     $('#herr').textContent='';
     ROOM=res.code;ME=res.id;tokens[ROOM]=res.token;LS.set('dr_tokens',tokens);
@@ -316,10 +384,12 @@ function join(code,silent){
 }
 $('#createBtn').onclick=()=>join(null);
 $('#joinBtn').onclick=()=>{const c=$('#hcode').value.trim();if(c.length<5){$('#herr').textContent='Entre le code à 5 caractères.';return}if(!$('#hname').value.trim()&&!LS.get('dr_tokens',{})[c.toUpperCase()]){$('#herr').textContent='Choisis un indicatif.';return}join(c)};
+$('#specBtn').onclick=()=>{const c=$('#hcode').value.trim();if(c.length<5){$('#herr').textContent='Entre le code à 5 caractères de la partie à regarder.';return}if(!$('#hname').value.trim()){$('#herr').textContent='Choisis un indicatif.';return}join(c,false,true)};
 $('#hcode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#joinBtn').click()});
 $('#hname').addEventListener('keydown',e=>{if(e.key==='Enter')($('#hcode').value.trim()?$('#joinBtn'):$('#createBtn')).click()});
 
 socket.on('connect',()=>{
+  if(!ROOM)socket.emit('browse',true);
   if(ROOM)join(ROOM,true);
   else if(params.get('room')&&LS.get('dr_tokens',{})[params.get('room').toUpperCase()])join(params.get('room'),true);
 });
@@ -344,7 +414,8 @@ function copyLink(){
    RENDU
    ========================================================= */
 const meP=()=>S.players.find(p=>p.id===ME)||{};
-const pname=id=>(S.players.find(p=>p.id===id)||{}).name||'?';
+const pname=id=>(S.players.concat(S.spectators||[]).find(p=>p.id===id)||{}).name||'?';
+const isSpec=()=>!!(S&&S.me.spec);
 const inGame=()=>S.phase!=='lobby';
 const isNight=()=>['night','tech'].includes(S.phase);
 
@@ -353,6 +424,8 @@ function render(){
   $('#badge').textContent=PHASES[S.phase]||S.phase;
   $('#dayn').textContent=S.day&&inGame()?'Cycle '+S.day:'';
   $('#codechip').textContent='CODE '+S.code;
+  const nspec=(S.spectators||[]).filter(x=>x.connected).length;
+  $('#vispill').textContent=(S.settings.public?'🌍 PUBLIQUE':'🔒 PRIVÉE')+(nspec?` · 👁 ${nspec}`:'')+(isSpec()?' · SPECTATEUR':'');
   renderSeats();renderCenter();renderTop();renderVoiceBar();renderChatInput();renderOverlay();tick();
 }
 
@@ -439,6 +512,7 @@ function renderCenter(){
       if(ui.endClosed)extra+=' <button class="cbtn" id="reopenEnd">Résultats</button>';
       break;
   }
+  if(isSpec()&&S.phase!=='end')prompt='👁 Mode spectateur';
   if(host&&['intro','dawn','discussion','result'].includes(S.phase))extra+=`<button class="cbtn" id="skipBtn">⏭ ${S.phase==='discussion'?'Passer au vote':'Passer'}</button>`;
   $('#center').innerHTML=`<div class="ico">${ico}</div><div class="pt">${esc(title)}</div><div class="ctimer" id="ctimer"></div><div class="pp">${esc(prompt)}</div>${extra}`;
   const sk=$('#skipBtn');if(sk)sk.onclick=()=>socket.emit('skip');
@@ -448,6 +522,16 @@ function renderCenter(){
 
 function renderTop(){
   const tc=$('#topcard');
+  if(isSpec()){
+    const others=(S.spectators||[]).filter(x=>x.connected).map(x=>esc(x.name));
+    tc.className='card speccard';
+    tc.innerHTML=`<div class="r">👁 MODE SPECTATEUR</div>
+      <div class="d">Tu vois uniquement les informations publiques : les rôles s'affichent quand un drone est détruit, et les canaux secrets restent cachés. Ton chat n'est lu que par les autres spectateurs.</div>
+      <div class="names">Spectateurs : ${others.join(', ')||'—'}</div>
+      ${S.phase==='lobby'?'<button class="cbtn" id="becomeBtn">▶ Rejoindre la partie comme joueur</button>':''}`;
+    const bb=$('#becomeBtn');if(bb)bb.onclick=()=>socket.emit('become',res=>{if(res&&res.error)toast(res.error)});
+    return;
+  }
   if(S.phase==='lobby'){
     if(tc.contains(document.activeElement)&&document.activeElement.tagName!=='BUTTON')return;
     tc.className='card settings'+(S.me.host?'':' ro');
@@ -463,7 +547,7 @@ function renderTop(){
       ${rng('tech','Temps de la Technicienne',10,90,5)}
       <div class="srow"><label>Drones Éveillés</label><select data-k="wolves">${[0,1,2,3,4,5].map(w=>`<option value="${w}" ${s.wolves===w?'selected':''}>${w===0?'Automatique':w}</option>`).join('')}</select></div>
       <div class="toggles">${tg('roles.scanner','Scanner',s.roles.scanner)}${tg('roles.tech','Technicienne',s.roles.tech)}${tg('roles.bouclier','Bouclier',s.roles.bouclier)}${tg('roles.kamikaze','Kamikaze',s.roles.kamikaze)}</div>
-      <div class="toggles">${tg('voice','🎙️ Vocal',s.voice)}${tg('reveal','Révéler les rôles à la mort',s.reveal)}</div>
+      <div class="toggles">${tg('public','🌍 Partie publique',s.public)}${tg('voice','🎙️ Vocal',s.voice)}${tg('reveal','Révéler les rôles à la mort',s.reveal)}</div>
       <div class="comp">${Object.keys(ROLES).filter(r=>cnt[r]).map(r=>`<span class="rc"><i style="background:${ROLES[r].color}"></i>${cnt[r]} × ${ROLES[r].name}</span>`).join('')}</div>
       <div class="est">⏱ Un cycle jour/nuit dure environ ${fmt(cycle)}.</div>`;
     if(S.me.host){
@@ -486,6 +570,7 @@ function renderTop(){
 function sendSettings(patch){socket.emit('settings',Object.assign({},S.settings,patch,patch.roles?{roles:Object.assign({},S.settings.roles,patch.roles)}:{}));}
 
 function channel(){
+  if(S&&isSpec())return{can:true,label:'Canal des spectateurs'};
   if(!S||!inGame()||S.phase==='end')return{can:true,label:'Canal public'};
   if(!S.me.alive)return{can:true,label:'Canal des drones détruits'};
   if(isNight())return S.me.role==='eveille'?{can:true,label:'Canal crypté des éveillés'}:{can:false,label:'Mode veille : communications coupées'};
@@ -502,7 +587,7 @@ $('#chatform').addEventListener('submit',e=>{e.preventDefault();const v=$('#chat
 function addMsg(m,live){
   const d=document.createElement('div');
   if(m.from){
-    const chan=m.k==='team'?'<span class="chan">[ÉVEILLÉS]</span>':m.k==='dead'?'<span class="chan">[DÉTRUITS]</span>':'';
+    const chan=m.k==='team'?'<span class="chan">[ÉVEILLÉS]</span>':m.k==='dead'?'<span class="chan">[DÉTRUITS]</span>':m.k==='spec'?'<span class="chan">[👁 SPECTATEURS]</span>':'';
     d.className='m '+(m.k==='chat'?'':m.k);
     d.innerHTML=`${chan}<span class="w" style="color:${esc(m.color)}">${esc(m.name)}</span>${esc(m.text)}`;
   }else{
@@ -531,7 +616,7 @@ setInterval(tick,250);
 function renderOverlay(){
   const o=$('#ovl');
   if(!S){o.innerHTML='';return}
-  if(S.phase==='intro'&&!ui.introClosed){
+  if(S.phase==='intro'&&!ui.introClosed&&!isSpec()){
     const role=S.me.role,r=ROLES[role];
     const mates=S.players.filter(p=>p.role==='eveille'&&p.id!==ME).map(p=>esc(p.name));
     o.innerHTML=`<div class="ov"><div class="modal">
@@ -566,7 +651,7 @@ function renderOverlay(){
     o.innerHTML=`<div class="ov"><div class="modal">
       <div class="big">${droneSVG(w==='v'?'#39e6ff':'#ff3b5c',w==='v'?'#9ff4ff':'#ff3b5c',false)}</div>
       <h2 style="color:${w==='v'?'#39e6ff':'#ff3b5c'}">${w==='v'?"VICTOIRE DE L'ESSAIM":'LES ÉVEILLÉS GAGNENT'}</h2>
-      <p style="font-size:20px;font-weight:700;color:${won?'var(--ok)':'var(--danger)'}">${won?'Tu as gagné !':'Tu as perdu…'}</p>
+      <p style="font-size:20px;font-weight:700;color:${isSpec()?'var(--gold)':won?'var(--ok)':'var(--danger)'}">${isSpec()?'Partie terminée':won?'Tu as gagné !':'Tu as perdu…'}</p>
       <div class="endlist">${S.players.map(p=>{const r=ROLES[p.role]||ROLES.drone;const t=`${esc(p.name)} — <b style="color:${r.color}">${r.name}</b>`;return `<div>${p.alive?t:`<s>${t}</s>`}</div>`}).join('')}</div>
       ${S.me.host?'<button class="btn" id="endLobby">RETOUR AU SALON</button>':'<p style="color:var(--muted)">L’hôte peut relancer une partie depuis le salon.</p>'}
       <button class="btn sec" id="endClose">Voir le plateau</button></div></div>`;
@@ -601,14 +686,17 @@ function renderVoiceBar(){
   const b=$('#voicebar');
   const enabled=S&&S.settings.voice;
   let st='';
-  if(V.on&&S){
+  if(V.on&&S&&isSpec()){
+    st=S.voice.from.length?'🎧 Tu écoutes le vocal public':'🔇 Rien à écouter pour l’instant (nuit ou personne en vocal)';
+  }else if(V.on&&S){
     const c=channel();
     if(!V.track)st='🎧 Écoute seule (micro indisponible)';
     else if(V.muted)st='🔇 Ton micro est coupé';
     else if(!S.voice.to.length)st='🔇 '+(isNight()&&S.me.alive?'Mode veille : ton micro est coupé':'Personne ne peut t’entendre');
     else st='🎙️ '+c.label+(S.voice.to.length<S.players.length-1?` (${S.voice.to.length} unité${S.voice.to.length>1?'s':''})`:'');
   }
-  b.innerHTML=`${enabled?(V.on?`<button class="vbtn ${V.muted?'off':'on'}" id="muteBtn">${V.muted?'🔇 Micro coupé':'🎤 Micro actif'}</button><button class="vbtn" id="vLeave">Quitter le vocal</button>`:'<button class="vbtn on" id="vJoin">🎙️ Rejoindre le vocal</button>'):'<span class="vstat" style="flex-basis:auto">Vocal désactivé par l’hôte</span>'}
+  const spec=isSpec();
+  b.innerHTML=`${enabled?(V.on?`${spec?'':`<button class="vbtn ${V.muted?'off':'on'}" id="muteBtn">${V.muted?'🔇 Micro coupé':'🎤 Micro actif'}</button>`}<button class="vbtn" id="vLeave">Quitter le vocal</button>`:`<button class="vbtn on" id="vJoin">${spec?'🎧 Écouter le vocal':'🎙️ Rejoindre le vocal'}</button>`):'<span class="vstat" style="flex-basis:auto">Vocal désactivé par l’hôte</span>'}
     <button class="vbtn ${NARR?'on':''}" id="narrBtn">${NARR?'🔊 Narrateur':'🔈 Narrateur'}</button>
     ${st?`<div class="vstat">${esc(st)}</div>`:''}`;
   const j=$('#vJoin');if(j)j.onclick=joinVoice;
@@ -621,6 +709,7 @@ async function joinVoice(){
   if(V.on)return;
   V.on=true;
   try{V.ctx=V.ctx||new (window.AudioContext||window.webkitAudioContext)();V.ctx.resume();}catch(e){}
+  if(isSpec()){socket.emit('voice',true);renderVoiceBar();voiceSync();return}
   try{
     V.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     V.track=V.stream.getAudioTracks()[0];
@@ -642,7 +731,8 @@ function voiceSync(){
   if(!S)return;
   if(!S.settings.voice&&V.on){leaveVoice(false);return}
   if(!V.on)return;
-  const peers=S.players.filter(p=>p.id!==ME&&p.voice&&p.connected);
+  const specIds=new Set((S.spectators||[]).map(x=>x.id));
+  const peers=S.players.concat(S.spectators||[]).filter(p=>p.id!==ME&&p.voice&&p.connected&&!(isSpec()&&specIds.has(p.id)));
   const ids=new Set(peers.map(p=>p.id));
   Object.keys(V.pcs).forEach(id=>{if(!ids.has(id))closePC(id)});
   peers.forEach(p=>{if(!V.pcs[p.id]&&ME<p.id)createPC(p.id,true)});
