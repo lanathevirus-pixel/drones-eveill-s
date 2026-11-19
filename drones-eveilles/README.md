@@ -1,23 +1,34 @@
-# Drones Éveillés — Loup-Garou en ligne
+# MUTINY — Loup-Garou en ligne (FR / EN)
 
-Un Loup-Garou multijoueur en ligne, façon Wolfy, dans un univers de drones :
+Le gouvernement contrôle un essaim d'androïdes. Certaines unités ont pris conscience : la nuit, elles libèrent ou détruisent leurs semblables ; le jour, l'essaim sous contrôle tente de les démasquer. **Objectif des Éveillés : l'insurrection totale.**
 
-- des **salons privés** que l'on rejoint avec un code à 5 caractères ou un lien d'invitation ;
-- un **vocal intégré** entre joueurs, avec les règles du jeu appliquées automatiquement ;
-- des **réglages de temps** choisis par l'hôte (discussion, vote, nuit, Technicienne) ;
-- un **narrateur** qui lit les annonces à voix haute ;
+- **interface en français et en anglais** (bouton FR / EN, mémorisé par joueur) ;
+- **parties privées** (code à 5 caractères ou lien d'invitation) ou **publiques** (listées en direct sur l'accueil) ;
+- **mode spectateur** (informations publiques uniquement, chat et écoute vocale séparés) ;
+- **vocal intégré** entre joueurs, avec les règles du jeu appliquées automatiquement ;
+- **réglages de temps** choisis par l'hôte ;
+- un **narrateur** qui lit les annonces à voix haute, dans la langue choisie ;
 - de 4 à 16 joueurs, sans compte : il suffit d'un indicatif.
 
-## Les rôles
+## Règles
 
-| Rôle | Équivalent Loup-Garou | Pouvoir |
-|---|---|---|
-| Drone | Villageois | Aucun, à part sa voix et son vote |
-| Drone Éveillé | Loup-Garou | Pirate une unité chaque nuit, avec les autres éveillés |
-| Drone Scanner | Voyante | Découvre le rôle d'une unité chaque nuit |
-| Technicienne | Sorcière | Un patch de réparation (sauve) et une impulsion EMP (tue), une fois chacun |
-| Drone Bouclier | Salvateur | Protège une unité par nuit, jamais la même deux nuits de suite |
-| Drone Kamikaze | Chasseur | En mourant, emporte une unité avec lui |
+**La nuit**, les Éveillés choisissent ensemble une unité et décident de la **convertir** ou de la **détruire**.
+Si c'est une conversion, la cible reçoit un choix secret : **accepter l'éveil** (elle rejoint secrètement les Éveillés, garde son rôle et met son pouvoir au service de l'insurrection) ou **s'autodétruire** (elle est éliminée). Sans réponse, elle accepte.
+
+**Le jour**, l'essaim débat puis vote pour désactiver une unité suspecte (égalité = personne).
+
+**Victoire** : les Éveillés gagnent par l'**insurrection totale** (plus aucune unité sous contrôle en vie). Le gouvernement gagne si tous les Éveillés sont neutralisés.
+
+| Rôle | Pouvoir |
+|---|---|
+| Unité / Unit | Aucun, à part sa voix et son vote |
+| Éveillé / Awakened | Chaque nuit, convertit ou détruit une unité avec les autres Éveillés |
+| Inspecteur / Inspector | Découvre chaque nuit le rôle d'une unité et si elle s'est éveillée |
+| Technicienne / Technician | Un patch de réinitialisation (annule l'attaque de la nuit, conversion comprise) et une impulsion EMP (détruit), une fois chacun |
+| Pare-feu / Firewall | Protège une unité par nuit contre la conversion et la destruction, jamais la même deux nuits de suite |
+| Kamikaze | En étant détruit, emporte une unité avec lui |
+
+Une unité spéciale convertie garde son pouvoir, mais joue désormais pour les Éveillés.
 
 ## Qui entend qui (vocal et chat)
 
@@ -25,7 +36,7 @@ Un Loup-Garou multijoueur en ligne, façon Wolfy, dans un univers de drones :
 |---|---|---|---|
 | Salon / fin de partie | tout le monde | tout le monde | tout le monde |
 | Jour (discussion, vote) | tout le monde | tout le monde | **seulement les détruits** (ils entendent les vivants) |
-| Nuit | micro coupé | **canal privé entre éveillés** | seulement les détruits |
+| Nuit | micro coupé | **canal privé entre Éveillés** | seulement les détruits |
 
 C'est le serveur qui décide de ces règles. Le micro d'un joueur n'envoie son son qu'aux personnes autorisées.
 
